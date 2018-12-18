@@ -1,6 +1,6 @@
-
+import json
 import requests
-
+from settings import *
 
 class Camera():
     def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None):
@@ -13,6 +13,19 @@ class Camera():
         self.camera_info_status_code = camera_info_status_code
         self.videos = []
         self.previews = []
+
+    def to_dict(self):
+        return {
+            'camera_id': self.camera_id,
+            'name': self.name,
+            'bridges': self.bridges,
+            'utcOffset': self.utcOffset,
+            'timezone': self.timezone,
+            'camera_info': self.camera_info,
+            'camera_info_status_code': self.camera_info_status_code,
+            'videos': self.videos,
+            'previews': self.previews
+        }
 
     def update(self):
         pass
@@ -73,17 +86,28 @@ class EagleEye():
     def __init__(self):
         self.host = "https://login.eagleeyenetworks.com"
         self.session = requests.Session()
+        self.headers = { 'Authorization': settings.api_key }
         self.cameras = []
         self.bridges = []
         self.switches = []
         self.user = None
         self.users = []
 
+    def to_dict(self):
+        return {
+            'host': self.host,
+            'cameras': self.cameras,
+            'bridges': self.bridges,
+            'switches': self.switches,
+            'user': self.user,
+            'users': self.users
+        }
+
     def check_cookie(self):
         def wrapper(*args, **kwargs):
             """ decorator to check if the current cookie is still valid """
             url = self.host + "/g/aaa/isauth"
-            res = session.get(url, data={})
+            res = session.get(url, headers=self.headers, data={})
 
             if res and res.status_code == 200:
                 return wrapper
@@ -99,13 +123,14 @@ class EagleEye():
     def _update_devices(self):
         """ Gets the list of device ids, filter into correct bucket """
         url = self.host + "/g/device/list"
-        res = self.session.get(url=url)
+        res = self.session.get(url=url, headers=self.headers)
 
         if res and res.status_code == 200:
             #self.cameras = [i[1] for i in res.json() if i[3] == 'camera']
             self.bridges = [i[1] for i in res.json() if i[3] == 'bridge']
             self.switches = [i[1] for i in res.json() if i[3] == 'switches']
 
+            self.cameras = []
             for device in [i for i in res.json() if i[3] == 'camera']:
                 c = Camera(
                         camera_id = device[1],
@@ -136,7 +161,7 @@ class EagleEye():
                 "password": password
             }
             url = self.host + "/g/aaa/authenticate"
-            res = self.session.post(url=url, data=payload)
+            res = self.session.post(url=url, headers=self.headers, data=payload)
 
             if res and res.status_code == 200:
                 print("login(step 1): %s" % res.status_code)
@@ -144,7 +169,7 @@ class EagleEye():
                 payload = { 'token': token }
                 url = self.host + "/g/aaa/authorize"
 
-                res = self.session.post(url=url, data=payload)
+                res = self.session.post(url=url, headers=self.headers, data=payload)
 
                 if res and res.status_code == 200:
                     print("login(step 2): %s" % res.status_code)
@@ -156,13 +181,17 @@ class EagleEye():
 
                     self.user = res.json()
                     self.host = f"https://{self.user['active_brand_subdomain']}.eagleeyenetworks.com"
+                    return True
 
                 else:
                     print("Login (step2) failed: %s" % res.status_code)
+                    return False
             else:
                 print("Login (step1) failed: %s" % res.status_code)
+                return False
         else:
             print("Login needs to be called with a username and password")
+            return False
 
 
     def _format_url_for_download(self, esn=None, start_time=None, end_time=None, video_format='MP4'):
