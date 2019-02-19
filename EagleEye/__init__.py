@@ -1,6 +1,7 @@
 import json
 import requests
-from settings import *
+from .settings import *
+from datetime import *
 
 class Camera():
     def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None):
@@ -149,6 +150,13 @@ class EagleEye():
         """
         pattern = "%Y%m%d%H%M%S.%f"
         return in_time.strftime(pattern)[:-3]
+
+    def _EEN_timestamp_to_datetime(een_time):
+        """
+            Take a EEN timestamp string and returns a datetime object
+        """
+        pattern = "%Y%m%d%H%M%S.%f"
+        return datetime.strptime(een_time, pattern)
 
     def login(self, username=None, password=None):
         """ 
