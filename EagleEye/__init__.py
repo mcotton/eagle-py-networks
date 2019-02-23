@@ -144,6 +144,82 @@ class EagleEye():
 
         return True
 
+    def get_user_list(self):
+
+        url = f"{self.host}/g/user/list"
+        res = self.session.get(url=url)
+
+        if res:
+            if res.status_code == 200:
+                for item in res.json():
+                    self.users.append(item)
+
+                self.users = sorted(self.users)
+            else:
+                print(f"get_users_list call failed with: {res.status_code}")
+        else:
+            print("get_users_list call failed")
+
+
+    def get_user_id_by_email(self, email=None):
+        if email:
+            results = [i for i in self.users if i[3] == email]
+            if len(results) > 0:
+                return results[0][0]
+        return None
+
+
+    def get_user_details(self, user_id=None):
+        if user_id:
+            
+            url = f"{self.host}/g/user?id={user_id}"
+            res = self.session.get(url=url)
+
+            if res:
+                if res.status_code == 200:
+                    
+                    return res.json()
+
+                else:
+                    print(f"get_users_details call failed with: {res.status_code}")
+            else:
+                print("get_users_details call failed")
+
+        else:
+            print("Need to pass in a user_id")
+            return None
+
+
+    def update_user_details(self, user=None):
+        if user:
+            
+            url = f"{self.host}/g/user"
+            print(url)
+            print(user)
+            print(json.dumps(user))
+            res = self.session.post(url=url, json=user, headers={'Content-Type': 'application/json'} )
+
+            if res:
+                print(res)
+                if res.status_code == 200:
+                    
+                    return res.json()
+
+                else:
+                    print(f"update_users_details call failed with: {res.status_code}")
+            else:
+                print("update_users_details call failed")
+
+        else:
+            print("Need to pass in a user_id")
+            return None
+
+
+    
+
+
+
+
     def _datetime_to_EEN_timestamp(in_time):
         """
             Takes a normal datetime object and returns it in EEN format
@@ -189,7 +265,7 @@ class EagleEye():
 
                     self.user = res.json()
                     self.host = f"https://{self.user['active_brand_subdomain']}.eagleeyenetworks.com"
-                    return True
+                    #return True
 
                 else:
                     print("Login (step2) failed: %s" % res.status_code)
