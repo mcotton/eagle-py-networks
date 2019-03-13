@@ -28,8 +28,6 @@ class Camera():
             'previews': self.previews
         }
 
-    def update(self):
-        pass
 
     def get_preview_list(self, camera_id=None, start_timestamp=None, end_timestamp=None, asset_class="all"):
         if end_timestamp:
@@ -53,7 +51,7 @@ class Camera():
             print("get_preview_list call failed")
 
 
-    def get_video_list(self, instance= None, start_timestamp=None, end_timestamp=None, count=None, options='coalesce'):
+    def get_video_list(self, instance=None, start_timestamp=None, end_timestamp=None, count=None, options='coalesce'):
 
         if end_timestamp:
             url = f"{instance.host}/asset/list/video?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&options={options}"
@@ -79,6 +77,16 @@ class Camera():
 
     def __repr__(self):
         return f"{self.camera_id} - {self.name}"
+
+
+    def _format_url_for_download(self, start_time=None, end_time=None, video_format='MP4'):
+        """
+            Returns the URL for downloading the video clip as an MP4.
+        """
+        if esn and start_time and end_time:
+            return "%s/asset/play/video.%s?id=%s&start_timestamp=%s&end_timestamp=%s" % (self.host, video_format, self.camera_id, start_time, end_time)
+        else:
+            print("WARNING: format_url_for_download needs start_time and end_time")
 
 
 
