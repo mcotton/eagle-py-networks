@@ -4,7 +4,7 @@ from .settings import *
 from datetime import *
 
 class Camera():
-    def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None):
+    def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None, status=None):
         self.camera_id = camera_id
         self.name = name
         self.bridges = bridges
@@ -14,8 +14,18 @@ class Camera():
         self.camera_info_status_code = camera_info_status_code
         self.videos = []
         self.previews = []
+        self.status = status
+        self.status_text = {    'registered': False,
+                                'camera_on': False,
+                                'streaming': False,
+                                'recording': False
+                            }
+
+        self.parse_status()
 
     def to_dict(self):
+        self.status_text = self.parse_status()
+
         return {
             'camera_id': self.camera_id,
             'name': self.name,
@@ -25,54 +35,84 @@ class Camera():
             'camera_info': self.camera_info,
             'camera_info_status_code': self.camera_info_status_code,
             'videos': self.videos,
-            'previews': self.previews
+            'previews': self.previews,
+            'status': self.status,
+            'status_text': self.status_text
         }
 
 
-    def get_preview_list(self, camera_id=None, start_timestamp=None, end_timestamp=None, asset_class="all"):
-        if end_timestamp:
-            url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&asset_class={asset_class}"
-        else:
-            url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&count={count}&asset_class={asset_class}"
+    def update(self):
+        pass
 
-        res = instance.session.get(url=url)
 
-        if res:
+    def parse_status(self):
+        STATUS_BITMASK_ONLINE           = 0x100000
+        STATUS_BITMASK_ON               = 0x020000
+        STATUS_BITMASK_CAMERA_STREAMING = 0x040000
+        STATUS_BITMASK_VIDEO_RECORDING  = 0x080000
 
-            if res.status_code == 200:
+        ret = self.status_text
 
-                for item in res.json():
-                    self.previews.append( (item['s'], item['e']) )
+        ret['registered'] = bool(self.status & STATUS_BITMASK_ONLINE)
+        ret['camera_on'] = bool(self.status & STATUS_BITMASK_ON)
+        ret['streaming'] = bool(self.status & STATUS_BITMASK_CAMERA_STREAMING)
+        ret['recording'] = bool(self.status & STATUS_BITMASK_VIDEO_RECORDING)
 
-                    self.previews = sorted(self.previews)
+        return ret
+ 
+
+
+    def get_preview_list(self, instance=None, start_timestamp=None, end_timestamp=None, asset_class="all", count=None):
+        if instance:
+            if start_timestamp and end_timestamp:
+                url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&asset_class={asset_class}"
+            elif start_timestamp:
+                url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&count={count}&asset_class={asset_class}"
             else:
-                print(f"get_preview_list call failed with: {res.status_code}")
-        else:
-            print("get_preview_list call failed")
+                print('get_preview_list needs start_timestamp, and end_timestamp or count')
+                return False
 
-
-    def get_video_list(self, instance=None, start_timestamp=None, end_timestamp=None, count=None, options='coalesce'):
-
-        if end_timestamp:
-            url = f"{instance.host}/asset/list/video?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&options={options}"
-        else:
-            url = f"{instance.host}/asset/list/video?id={self.camera_id}&start_timestamp={start_timestamp}&count={count}&options={options}"
-
-        res = instance.session.get(url=url)
-
-        if res:
-
-            if res.status_code == 200:
-
-                for item in res.json():
-                    self.videos.append( (item['s'], item['e']) )
-
-                self.videos = sorted(self.videos)
-
+            res = instance.session.get(url=url)
+            if res:
+                if res.status_code == 200:
+                    for item in res.json():
+                        self.previews.append( (item['s']) )
+                    
+                    self.previews = list(set(sorted(self.previews)))
+                    return self.previews
+                else:
+                    print(f"get_preview_list call failed with: {res.status_code}")
             else:
-                print(f"get_video_list call failed with: {res.status_code}")
+                print("get_preview_list call failed")
         else:
-            print("get_video_list call failed")
+            print("need to pass in an instance of EagleEye")
+
+
+    def get_video_list(self, instance= None, start_timestamp=None, end_timestamp=None, count=None, options='coalesce'):
+        if instance:
+            if start_timestamp and end_timestamp:
+                url = f"{instance.host}/asset/list/video?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&options={options}"
+            elif start_timestamp:
+                url = f"{instance.host}/asset/list/video?id={self.camera_id}&start_timestamp={start_timestamp}&count={count}&options={options}"
+            else:
+                    print('get_view_list needs start_timestamp, and end_timestamp or count')
+                    return False
+
+            res = instance.session.get(url=url)
+            if res:
+                if res.status_code == 200:
+                    for item in res.json():
+                        self.videos.append( (item['s'], item['e']) )
+
+                    self.videos = list(set(sorted(self.videos)))
+                    return self.videos
+
+                else:
+                    print(f"get_video_list call failed with: {res.status_code}")
+            else:
+                print("get_video_list call failed")
+        else:
+                print("need to pass in an instance of EagleEye")
 
 
     def __repr__(self):
@@ -273,7 +313,7 @@ class EagleEye():
 
                     self.user = res.json()
                     self.host = f"https://{self.user['active_brand_subdomain']}.eagleeyenetworks.com"
-                    #return True
+                    return True
 
                 else:
                     print("Login (step2) failed: %s" % res.status_code)
