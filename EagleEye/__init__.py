@@ -186,7 +186,8 @@ class EagleEye():
                         name = device[2],
                         bridges = device[4],
                         utcOffset = device[12],
-                        timezone = device[11]
+                        timezone = device[11],
+                        status = device[10]
                     )
                 self.cameras.append(c)
 
