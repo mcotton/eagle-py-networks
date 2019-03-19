@@ -66,8 +66,10 @@ class Camera():
         if instance:
             if start_timestamp and end_timestamp:
                 url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&asset_class={asset_class}"
-            elif start_timestamp:
+            elif start_timestamp and count:
                 url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&count={count}&asset_class={asset_class}"
+            elif start_timestamp:
+                url = f"{instance.host}/asset/list/image?id={self.camera_id}&start_timestamp={start_timestamp}&asset_class={asset_class}"
             else:
                 print('get_preview_list needs start_timestamp, and end_timestamp or count')
                 return False
@@ -86,6 +88,25 @@ class Camera():
                 print("get_preview_list call failed")
         else:
             print("need to pass in an instance of EagleEye")
+
+
+    def download_image(self, instance=None, timestamp=None, modifier="asset", asset_class="all"):
+        if instance:
+            if timestamp:
+                url = f"{instance.host}/asset/{modifier}/image.jpeg?id={self.camera_id}&timestamp={timestamp}&asset_class={asset_class}"
+                # print(url)
+                res = instance.session.get(url=url)
+
+                if res.status_code == 200:
+                    return res.content
+                else:
+                    print(f"download_image returned {res.status_code}")
+            else:
+                print('downlaod_image needs a timestamp or now')
+        else:
+            print('need to pass in an instance of EagleEye')
+
+        return None
 
 
     def get_video_list(self, instance= None, start_timestamp=None, end_timestamp=None, count=None, options='coalesce'):
