@@ -4,7 +4,7 @@ from .settings import *
 from datetime import *
 
 class Camera():
-    def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None, status=None):
+    def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None, status=None, tags = [], ip_address=None):
         self.camera_id = camera_id
         self.name = name
         self.bridges = bridges
@@ -13,7 +13,10 @@ class Camera():
         self.camera_info = camera_info
         self.camera_info_status_code = camera_info_status_code
         self.videos = []
-        self.previews = []
+        self.previews = [],
+        self.tags = tags,
+        self.ip_address = ip_address,
+        self.camera_parameters = {},
         self.status = status
         self.status_text = {    'registered': False,
                                 'camera_on': False,
@@ -22,6 +25,8 @@ class Camera():
                             }
 
         self.parse_status()
+        self._clean_up_ip_address()
+        # self._get_camera_parameters()
 
     def to_dict(self):
         self.status_text = self.parse_status()
@@ -39,6 +44,59 @@ class Camera():
             'status': self.status,
             'status_text': self.status_text
         }
+
+    def _clean_up_ip_address(self):
+        clean_ip = self.ip_address
+
+        if type(clean_ip) == tuple:
+            clean_ip = clean_ip[0]
+        
+        self.ip_address = clean_ip.replace('*', '')
+        return self.ip_address
+
+    def _get_camera_parameters(self, instance=None):
+        url = f"{instance.host}/g/device?id={self.camera_id}"
+
+        res = instance.session.get(url=url)
+        if res:
+            if res.status_code == 200:
+                if res.json():
+                    self.camera_parameters = res.json()
+                else:
+                    print("Response is not JSON")
+                    return None
+            else:
+                print( f"_get_camera_parameters call returned {res.status_code}")
+                return None
+        return None
+
+    def update_device_details(self, instance=None, body=None):
+        if instance and body:
+            
+            url = f"{instance.host}/g/device"
+            print(url)
+
+            print(json.dumps(body))
+            if body['id']:
+                res = instance.session.post(url=url, json=body, headers={'Content-Type': 'application/json'} )
+
+                if res:
+                    print(res)
+                    if res.status_code == 200:
+                        
+                        return res.json()
+
+                    else:
+                        print(f"update_device_details call failed with: {res.status_code}")
+                else:
+                    print("update_device_details call failed")
+                pass
+            else:
+                print("Need to have an id in the post body")
+
+        else:
+            print("Need to pass in a JSON body to post")
+            return None
 
 
     def update(self):
@@ -189,6 +247,16 @@ class EagleEye():
         ret =  [i for i in self.cameras if i.camera_id == target_esn]
         if len(ret) > 0:
             return ret[0]
+        else:
+            return None
+
+
+    def find_by_ip(self, ip_address):
+        ret =  [i for i in self.cameras if i.ip_address == ip_address]
+        if len(ret) > 0:
+            return ret[0]
+        else:
+            return None
 
     def _update_devices(self):
         """ Gets the list of device ids, filter into correct bucket """
@@ -208,7 +276,9 @@ class EagleEye():
                         bridges = device[4],
                         utcOffset = device[12],
                         timezone = device[11],
-                        status = device[10]
+                        status = device[10],
+                        ip_address = device[14],
+                        tags = device[7]
                     )
                 self.cameras.append(c)
 
