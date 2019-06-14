@@ -406,14 +406,14 @@ class EagleEye():
 
 
 
-    def _datetime_to_EEN_timestamp(in_time):
+    def _datetime_to_EEN_timestamp(self, in_time):
         """
             Takes a normal datetime object and returns it in EEN format
         """
         pattern = "%Y%m%d%H%M%S.%f"
         return in_time.strftime(pattern)[:-3]
 
-    def _EEN_timestamp_to_datetime(een_time):
+    def _EEN_timestamp_to_datetime(self, een_time):
         """
             Take a EEN timestamp string and returns a datetime object
         """
