@@ -168,6 +168,7 @@ class Camera():
         else:
             print("need to pass in an instance of EagleEye")
 
+
     def create_annotation(self, timestamp='now', ns=None, obj={}):
         if ns:
             
@@ -190,7 +191,6 @@ class Camera():
         else:
             print("Need to pass in a namespace")
             return None
-
 
 
 
@@ -238,6 +238,28 @@ class Camera():
                 print("get_video_list call failed")
         else:
                 print("need to pass in an instance of EagleEye")
+
+
+    def prefetch_video(self, instance= None, start_timestamp=None, end_timestamp=None, success_hook=None, failure_hook=None):
+
+        url = f"{instance.host}/asset/cloud/video.flv?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&success_hook={success_hook}&failure_hook={failure_hook}"
+        
+        res = instance.session.get(url=url)
+
+        if res:
+
+            if res.status_code == 201:
+                return res.json()['data']['uuid']
+
+            else:
+                print(f"prefetch_video call failed with: {res.status_code}")
+        else:
+            print("prefetch_video call failed")
+
+
+
+    def __repr__(self):
+        return f"{self.camera_id} - {self.name}"
 
 
     def __repr__(self):
