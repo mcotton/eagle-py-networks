@@ -119,6 +119,27 @@ class Camera():
         return ret
  
 
+    def get_annotations_list(self, instance=None, start_timestamp=None, end_timestamp=None, ns=None):
+        if instance:
+            if start_timestamp and end_timestamp and ns:
+                url = f"{instance.host}/annt/event/list?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&namespace={ns}"
+            else:
+                print("get_annotations_list needs a start_timestamp, end_timestamp, and ns")
+                return False
+
+            res = instance.session.get(url=url)
+            if res:
+                if res.status_code == 200:
+                    return res.json()
+                else:
+                    print("get_annotations_list call failed with: {res.status_code}")
+            else:
+                print("get_annotations_list call failed")
+        else:
+            print("need to pass in an instance of EagleEye")
+        
+        return False
+
 
     def get_preview_list(self, instance=None, start_timestamp=None, end_timestamp=None, asset_class="all", count=None):
         if instance:
@@ -147,6 +168,31 @@ class Camera():
         else:
             print("need to pass in an instance of EagleEye")
 
+    def create_annotation(self, timestamp='now', ns=None, obj={}):
+        if ns:
+            
+            url = f"{self.host}/annt/set"
+            print(url)
+            print(json.dumps(obj))
+            res = self.session.post(url=url, json=obj, headers={'Content-Type': 'application/json'} )
+
+            if res:
+                print(res)
+                if res.status_code == 200:
+                    
+                    return res.json()
+
+                else:
+                    print(f"create_annotation call failed with: {res.status_code}")
+            else:
+                print("create_annotation call failed")
+
+        else:
+            print("Need to pass in a namespace")
+            return None
+
+
+
 
     def download_image(self, instance=None, timestamp=None, modifier="asset", asset_class="all"):
         if instance:
@@ -158,7 +204,7 @@ class Camera():
                 if res.status_code == 200:
                     return res.content
                 else:
-                    print(f"download_image returned {res.status_code}")
+                    print(f"download_image returned {res.status_code} - {url}")
             else:
                 print('downlaod_image needs a timestamp or now')
         else:
