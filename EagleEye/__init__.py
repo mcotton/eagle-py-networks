@@ -4,6 +4,7 @@ from .settings import *
 from datetime import *
 
 class Camera():
+
     def __init__(self, camera_id=None, name=None, bridges=None, utcOffset=None, timezone=None, camera_info=None, camera_info_status_code=None, status=None, tags = [], ip_address=None):
         self.camera_id = camera_id
         self.name = name
@@ -28,6 +29,7 @@ class Camera():
         self._clean_up_ip_address()
         # self._get_camera_parameters()
 
+
     def to_dict(self):
         self.status_text = self.parse_status()
 
@@ -45,6 +47,7 @@ class Camera():
             'status_text': self.status_text
         }
 
+
     def _clean_up_ip_address(self):
         clean_ip = self.ip_address
 
@@ -53,6 +56,7 @@ class Camera():
         
         self.ip_address = clean_ip.replace('*', '')
         return self.ip_address
+
 
     def _get_camera_parameters(self, instance=None):
         url = f"{instance.host}/g/device?id={self.camera_id}"
@@ -69,6 +73,7 @@ class Camera():
                 print( f"_get_camera_parameters call returned {res.status_code}")
                 return None
         return None
+
 
     def update_device_details(self, instance=None, body=None):
         if instance and body:
@@ -117,7 +122,7 @@ class Camera():
         ret['recording'] = bool(self.status & STATUS_BITMASK_VIDEO_RECORDING)
 
         return ret
- 
+
 
     def get_annotations_list(self, instance=None, start_timestamp=None, end_timestamp=None, ns=None):
         if instance:
@@ -193,7 +198,6 @@ class Camera():
             return None
 
 
-
     def download_image(self, instance=None, timestamp=None, modifier="asset", asset_class="all"):
         if instance:
             if timestamp:
@@ -257,11 +261,6 @@ class Camera():
             print("prefetch_video call failed")
 
 
-
-    def __repr__(self):
-        return f"{self.camera_id} - {self.name}"
-
-
     def __repr__(self):
         return f"{self.camera_id} - {self.name}"
 
@@ -289,6 +288,7 @@ class EagleEye():
         self.user = None
         self.users = []
 
+
     def to_dict(self):
         return {
             'host': self.host,
@@ -298,6 +298,7 @@ class EagleEye():
             'user': self.user,
             'users': self.users
         }
+
 
     def check_cookie(self):
         def wrapper(*args, **kwargs):
@@ -310,6 +311,7 @@ class EagleEye():
         
             elif res or res.status_code == 401:
                 print("WARNING: Cookie is no longer valid, need to login again")
+
 
     def find_by_esn(self, target_esn):
         ret =  [i for i in self.cameras if i.camera_id == target_esn]
@@ -325,6 +327,7 @@ class EagleEye():
             return ret[0]
         else:
             return None
+
 
     def _update_devices(self):
         """ Gets the list of device ids, filter into correct bucket """
@@ -351,6 +354,7 @@ class EagleEye():
                 self.cameras.append(c)
 
         return True
+
 
     def get_user_list(self):
 
@@ -423,11 +427,6 @@ class EagleEye():
             return None
 
 
-    
-
-
-
-
     def _datetime_to_EEN_timestamp(self, in_time):
         """
             Takes a normal datetime object and returns it in EEN format
@@ -435,12 +434,14 @@ class EagleEye():
         pattern = "%Y%m%d%H%M%S.%f"
         return in_time.strftime(pattern)[:-3]
 
+
     def _EEN_timestamp_to_datetime(self, een_time):
         """
             Take a EEN timestamp string and returns a datetime object
         """
         pattern = "%Y%m%d%H%M%S.%f"
         return datetime.strptime(een_time, pattern)
+
 
     def login(self, username=None, password=None):
         """ 
