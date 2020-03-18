@@ -14,10 +14,11 @@ class Camera():
         self.camera_info = camera_info
         self.camera_info_status_code = camera_info_status_code
         self.videos = []
-        self.previews = [],
-        self.tags = tags,
-        self.ip_address = ip_address,
-        self.camera_parameters = {},
+        self.cloud = []
+        self.previews = []
+        self.tags = tags
+        self.ip_address = ip_address
+        self.camera_parameters = {}
         self.status = status
         self.status_text = {    'registered': False,
                                 'camera_on': False,
@@ -244,6 +245,33 @@ class Camera():
                 print("need to pass in an instance of EagleEye")
 
 
+    def get_cloud_video_list(self, instance= None, start_timestamp=None, end_timestamp=None, cache=False):
+
+        url = f"{instance.host}/asset/info/video?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}"
+
+        res = instance.session.get(url=url)
+
+        if cache == False:
+            # clear out the previous results unless cache is explicitly set
+            self.cloud = []
+
+        if res:
+
+            if res.status_code == 200:
+
+                results = res.json()
+
+                for item in results["spans"]:
+                    self.cloud.append((item['ts'], item['info']['filesize'], item['info']['missing']))
+
+                self.cloud = sorted(set(self.cloud))
+
+            else:
+                print(f"get_cloud_video_list call failed with: {res.status_code}")
+        else:
+            print("get_cloud_video_list call failed")
+
+
     def prefetch_video(self, instance= None, start_timestamp=None, end_timestamp=None, success_hook=None, failure_hook=None):
 
         url = f"{instance.host}/asset/cloud/video.flv?id={self.camera_id}&start_timestamp={start_timestamp}&end_timestamp={end_timestamp}&success_hook={success_hook}&failure_hook={failure_hook}"
@@ -427,7 +455,7 @@ class EagleEye():
             return None
 
 
-    def _datetime_to_EEN_timestamp(self, in_time):
+    def _datetime_to_EEN_timestamp(in_time):
         """
             Takes a normal datetime object and returns it in EEN format
         """
@@ -435,7 +463,7 @@ class EagleEye():
         return in_time.strftime(pattern)[:-3]
 
 
-    def _EEN_timestamp_to_datetime(self, een_time):
+    def _EEN_timestamp_to_datetime(een_time):
         """
             Take a EEN timestamp string and returns a datetime object
         """
